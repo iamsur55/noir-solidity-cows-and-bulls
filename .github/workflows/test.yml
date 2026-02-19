@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  FOUNDRY_VERSION: 1.6.0-nightly
+  FOUNDRY_VERSION: nightly-2026-01-14
   FOUNDRY_FALLBACK_REF: b272ce3366987406406e9eb1b82596653a3ad628
   NARGO_VERSION: 1.0.0-beta.18
   BB_VERSION: 3.0.0-nightly.20260102
@@ -24,9 +24,6 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
 
       - name: Install Foundry (retry)
         shell: bash
@@ -53,7 +50,7 @@ jobs:
               "$FOUNDRY_BIN_DIR/anvil" \
               "$FOUNDRY_BIN_DIR/chisel"
 
-            if "$FOUNDRY_BIN_DIR/foundryup" --commit "$FOUNDRY_FALLBACK_REF"; then
+            if "$FOUNDRY_BIN_DIR/foundryup --install "$FOUNDRY_VERSION"; then
 
               # Check if we downloaded HTML instead of binary
               if ! file "$FOUNDRY_BIN_DIR/forge" | grep -q 'ELF'; then
