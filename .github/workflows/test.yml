@@ -27,7 +27,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: nightly-2026-01-14
+          version: v1.5.6
 
       - name: Install Noir
         run: |
