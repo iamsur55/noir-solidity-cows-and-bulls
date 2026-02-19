@@ -1,4 +1,4 @@
-name: CI
+name: cows_and_bulls_ci
 
 permissions: {}
 
@@ -8,9 +8,10 @@ on:
   workflow_dispatch:
 
 env:
-  FOUNDRY_VERSION: 1.5.1-stable
+  FOUNDRY_VERSION: v1.5.1-stable
   NARGO_VERSION: 1.0.0-beta.18
   BB_VERSION: 3.0.0-nightly.20260102
+  ARCH: linux_amd64
 
 jobs:
   check:
@@ -18,34 +19,62 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
-      - uses: actions/checkout@v5
+      - name: Checkout repository
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: $FOUNDRY_VERSION
+      - name: Install Foundry (CI-stable binary)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "Installing Foundry $FOUNDRY_VERSION"
+
+          # Fetch the GitHub release asset for the chosen version
+          ASSET_URL=$(curl -s \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/foundry-rs/foundry/releases/tags/${FOUNDRY_VERSION} \
+            | jq -r ".assets[] | select(.name==\"foundry_${FOUNDRY_VERSION#v}_${ARCH}.tar.gz\") | .browser_download_url")
+
+          if [[ -z "$ASSET_URL" ]]; then
+            echo "ERROR: Could not find download URL for Foundry $FOUNDRY_VERSION"
+            exit 1
+          fi
+
+          # Download and verify gzip archive
+          curl -L --retry 5 --retry-delay 2 "$ASSET_URL" -o foundry.tar.gz
+          file foundry.tar.gz | grep -q 'gzip' || { echo "ERROR: Not a gzip archive"; exit 1; }
+
+          # Extract and install
+          tar -xzf foundry.tar.gz
+          mkdir -p "$HOME/.foundry/bin"
+          mv forge cast anvil chisel "$HOME/.foundry/bin"
+          echo "$HOME/.foundry/bin" >> "$GITHUB_PATH"
+
+          # Verify binaries
+          forge --version
+          anvil --version
 
       - name: Install Noir
+        shell: bash
         run: |
+          set -euo pipefail
           curl -L https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash
           "$HOME/.nargo/bin/noirup" -v "$NARGO_VERSION"
           echo "$HOME/.nargo/bin" >> "$GITHUB_PATH"
+          nargo --version
 
       - name: Install Barretenberg
+        shell: bash
         run: |
+          set -euo pipefail
           curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/install | bash
           "$HOME/.bb/bbup" -v "$BB_VERSION"
           echo "$HOME/.bb" >> "$GITHUB_PATH"
-
-      - name: Verify tool installation
-        run: |
-          forge --version
-          anvil --version
-          nargo --version
           bb --version
 
       - name: Run circuit checks
