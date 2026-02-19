@@ -1,0 +1,6 @@
+[package]
+name = "cows_and_bulls"
+type = "bin"
+authors = [""]
+
+[dependencies]

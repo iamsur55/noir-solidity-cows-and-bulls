@@ -1,0 +1,73 @@
+name: CI
+
+permissions: {}
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_VERSION: 1.6.0-nightly
+  NARGO_VERSION: 1.0.0-beta.18
+  BB_VERSION: 3.0.0-nightly.20260102
+
+jobs:
+  check:
+    name: cows-and-bulls
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: ${{ env.FOUNDRY_VERSION }}
+
+      - name: Install Noir
+        run: |
+          curl -L https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash
+          "$HOME/.nargo/bin/noirup" -v "$NARGO_VERSION"
+          echo "$HOME/.nargo/bin" >> "$GITHUB_PATH"
+
+      - name: Install Barretenberg
+        run: |
+          curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/install | bash
+          "$HOME/.bb/bbup" -v "$BB_VERSION"
+          echo "$HOME/.bb" >> "$GITHUB_PATH"
+
+      - name: Verify tool installation
+        run: |
+          forge --version
+          anvil --version
+          nargo --version
+          bb --version
+
+      - name: Run circuit checks
+        run: npm run zk:check
+
+      - name: Prepare prover inputs
+        run: cp circuits/Prover.example.toml circuits/Prover.toml
+
+      - name: Execute circuit
+        run: npm run zk:execute
+
+      - name: Generate verifier
+        run: npm run zk:verifier
+
+      - name: Generate proof
+        run: npm run zk:proof
+
+      - name: Run Forge fmt
+        run: forge fmt --check
+
+      - name: Run Forge build
+        run: forge build --sizes
+
+      - name: Run Foundry tests
+        run: npm run foundry:test
