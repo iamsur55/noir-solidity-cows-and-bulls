@@ -1,0 +1,25 @@
+# Save a copy of this file as Game.toml
+round = "0"
+
+# Players
+## make sure you have set the corresponding maker_private_key and breaker_private_key in `.env`
+## anvil #0
+maker = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+## anvil #1
+breaker = "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+
+# Public inputs
+guessA = "1"
+guessB = "2"
+guessC = "3"
+guessD = "4"
+cows = "2"
+bulls = "1"
+publicSolutionHash = "0x17df526bf4b433952da1be4573e3be254cdd8d695aff821e75f86c833a592954"
+
+# Private inputs
+salt = "42"
+solutionA = "2"
+solutionB = "1"
+solutionC = "3"
+solutionD = "5"

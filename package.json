@@ -7,14 +7,16 @@
   "type": "commonjs",
   "scripts": {
     "zk:check": "cd circuits && nargo check --overwrite",
-    "zk:execute": "cd circuits && nargo execute",
+    "zk:execute": "cd circuits && nargo execute --prover-name ../Game.toml",
     "zk:verifier": "cd circuits && bb write_vk -b ./target/cows_and_bulls.json -o ./target -t evm && bb write_solidity_verifier -k ./target/vk -o ./target/Verifier.sol",
     "zk:proof": "cd circuits && bb prove -b ./target/cows_and_bulls.json -w ./target/cows_and_bulls.gz -o ./target -t evm",
-    "foundry:test": "forge test",
+    "foundry:test": "forge test -vvv",
     "foundry:anvil": "anvil",
     "foundry:deploy_local": "forge script script/CowsAndBulls.s.sol --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --rpc-url http://127.0.0.1:8545 --optimize --optimizer-runs 1 --broadcast",
-    "foundry:playround": "forge script script/PlayRound.s.sol:PlayRoundScript --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast",
-    "tool:hash": "node circuits/scripts/pedersen-hash.js",
-    "tool:export-eth-inputs": "node circuits/scripts/export-ethereum-inputs.js"
+    "foundry:createNewGame": "npm config set script-shell \"/bin/bash\"; source .env && forge script script/createNewGame.s.sol:CreateNewGameScript --rpc-url http://127.0.0.1:8545 --private-key $MAKER_PRIVATE_KEY --broadcast",
+    "foundry:makeGuess": "source .env && forge script script/makeGuess.s.sol:MakeGuessScript --rpc-url http://127.0.0.1:8545 --private-key $BREAKER_PRIVATE_KEY  --broadcast",
+    "foundry:giveFeedback": "source .env && forge script script/giveFeedback.s.sol:GiveFeedbackScript --rpc-url http://127.0.0.1:8545 --private-key $MAKER_PRIVATE_KEY  --broadcast",
+    "tool:hash": "cd circuits && nargo execute tmp --prover-name ../Game.toml && rm -rf circuits/target/tmp.gz" ,
+    "tool:export-eth-inputs": "node tools/export-ethereum-inputs.js"
   }
 }

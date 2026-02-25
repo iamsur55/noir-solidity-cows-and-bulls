@@ -79,27 +79,21 @@ verify: `forge --version`
 These commands are the standard workflow for building artifacts and interacting with the project.
 
 ### Check circuit
-Validates the circuit and creates/overwrites `circuits/Prover.toml` with default structure and empty values.
+Validates the circuit and creates/overwrites `circuits/Prover.toml` with default structure and empty values. Unless for development purposes, the rest of this repo uses the configuration as found in `Game.toml.example`
 
 ```bash
 npm run zk:check
 ```
 
 ### Compute Pedersen hash
-Reads values from `circuits/Prover.toml` and prints the hash used for `publicSolutionHash` (in `Prover.toml`).
 
 ```bash
 npm run tool:hash
 ```
-
-Optional explicit inputs:
-
-```bash
-npm run tool:hash -- <salt> <guessA> <guessB> <guessC> <guessD>
-```
+The `stdout` should contain something like: `PublicSolutionHash: 0x17df526bf4b433952da1be4573e3be254cdd8d695aff821e75f86c833a592954` and potentially some errors, but you may ignore them. Paste the `publicSolutionHash` in your file `Game.toml`.
 
 ### Execute circuit (witness generation)
-Runs `src/main.nr` with values from `Prover.toml` and writes witness `target/cows_and_bulls.gz`.
+Runs `src/main.nr` with values from `Game.toml` and writes witness `target/cows_and_bulls.gz`.
 
 ```bash
 npm run zk:execute
@@ -136,11 +130,25 @@ npm run foundry:anvil
 npm run foundry:deploy_local
 ```
 
-### Send `playRound` transaction
-Requires a deployed `CowsAndBulls` instance and `circuits/target/proof` and `circuits/target/public_inputs` (from `npm run zk:proof`).
+### Send `createNewGame` transaction
+Requires a deployed `CowsAndBulls` instance and `MAKER_PRIVATE_KEY` set in `.env`. The `MAKER_PRIVATE_KEY` should correspond to the `makerAddress` address in `Game.toml`.
 
 ```bash
-npm run foundry:playround
+npm run foundry:newGame
+```
+
+### Send `makeGuess` transaction
+Requires a deployed `CowsAndBulls` instance and `BREAKER_PRIVATE_KEY` set in `.env`. The `BREAKER_PRIVATE_KEY` should correspond to the `breakerAddress` address in `Game.toml`.
+
+```bash
+npm run foundry:makeGuess
+```
+
+### Send `giveFeedback` transaction
+Requires a deployed `CowsAndBulls` instance and `circuits/target/proof` and `circuits/target/public_inputs` (from `npm run zk:proof`). The `MAKER_PRIVATE_KEY` set in `.env` should correspond to the `makerAddress` address in `Game.toml`.
+
+```bash
+npm run foundry:giveFeedback
 ```
 
 ### Export Ethereum-ready inputs

@@ -6,7 +6,9 @@ optimizer = true
 optimizer_runs = 1
 fs_permissions = [
 	{ access = "read", path = "./circuits/target" },
-    { access = "read", path = "./broadcast" }
+    { access = "read", path = "./broadcast" },
+    { access = "read", path = "./Game.toml" },
+    { access = "read", path = "./test/inputs.json" }
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options

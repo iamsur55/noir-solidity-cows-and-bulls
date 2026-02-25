@@ -1,19 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {Script} from "lib/forge-std/src/Script.sol";
 import {console2} from "lib/forge-std/src/console2.sol";
 import {CowsAndBulls} from "../src/CowsAndBulls.sol";
+import {Helper} from "./helper/Helper.sol";
 
-contract PlayRoundScript is Script {
+contract GiveFeedbackScript is Helper {
     function run() public {
-        string memory deploymentJson = vm.readFile("broadcast/CowsAndBulls.s.sol/31337/run-latest.json");
-
-        string memory contractName = vm.parseJsonString(deploymentJson, ".transactions[2].contractName");
-        require(
-            keccak256(bytes(contractName)) == keccak256(bytes("CowsAndBulls")), "CowsAndBulls tx not found at index 2"
-        );
-        address cowsAndBullsAddress = vm.parseJsonAddress(deploymentJson, ".transactions[2].contractAddress");
+        address cowsAndBullsAddress = getLatestDeploymentAddress();
+        CowsAndBulls cowsAndBulls = CowsAndBulls(cowsAndBullsAddress);
 
         bytes memory proof = vm.readFileBinary("circuits/target/proof");
         bytes memory raw = vm.readFileBinary("circuits/target/public_inputs");
@@ -29,21 +24,21 @@ contract PlayRoundScript is Script {
             publicInputs[i] = value;
         }
 
-        CowsAndBulls cowsAndBulls = CowsAndBulls(cowsAndBullsAddress);
+        address breaker = vm.parseTomlAddress(vm.readFile("Game.toml"), ".breakerAddress");
+        console2.log("cows");
+        console2.logBytes32(publicInputs[4]);
+        console2.log("bulls");
+        console2.logBytes32(publicInputs[5]);
+        console2.logBytes32(publicInputs[6]);
 
         vm.startBroadcast();
-        bool ok = cowsAndBulls.playRound(
+        cowsAndBulls.giveFeedback(
+            breaker,
             proof,
-            publicInputs[0],
-            publicInputs[1],
-            publicInputs[2],
-            publicInputs[3],
             publicInputs[4],
             publicInputs[5],
             publicInputs[6]
         );
         vm.stopBroadcast();
-
-        console2.log("playRound result:", ok);
     }
 }
