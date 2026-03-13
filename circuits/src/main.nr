@@ -1,4 +1,4 @@
-use dep::std;
+use std;
 
 fn compute_solution_hash(salt: u32, solutionA: u8, solutionB: u8, solutionC: u8, solutionD: u8) -> Field {
     std::hash::pedersen_hash([
@@ -24,40 +24,50 @@ fn main(
     solutionD: u8,
     salt: u32
 ) {
+   print("PublicSolutionHash: ");
+   println(compute_solution_hash(salt, solutionA, solutionB, solutionC, solutionD));
 
-    print("PublicSolutionHash: ");
-    println(compute_solution_hash(salt, solutionA, solutionB, solutionC, solutionD));
-    
     let guess: [u8; 4] = [guessA, guessB, guessC, guessD];
     let solutions: [u8; 4] = [solutionA, solutionB, solutionC, solutionD];
 
     // input validation. Each guess defined on the range [0,5] (6 colors)
     for i in 0..4 {
-        assert(guess[i] <= 5);
-        assert(solutions[i] <= 5);
+       assert(guess[i] <= 5);
+       assert(solutions[i] <= 5);
     }
-    
-    let mut provenCows: u8 = 0; // correct color, wrong position
+
     let mut provenBulls: u8 = 0; // correct color, right position
-    
+
     for i in 0..4 {
-        for j in 0..4 {
-            if (guess[i] == solutions[j]) {
-                if (i == j) {
-                    provenBulls = provenBulls + 1;
-                } else {
-                    provenCows = provenCows + 1;
-                }
-            }
+        if guess[i] == solutions[i] {
+            provenBulls += 1;
         }
     }
+
+    // Count total color matches using min(guessCount, solutionCount) per color
+    let mut totalMatches: u8 = 0;
+    for color in 0..6 {
+        let mut guessCount: u8 = 0;
+        let mut solutionCount: u8 = 0;
+        for i in 0..4 {
+            if guess[i] == color as u8 { guessCount += 1; }
+            if solutions[i] == color as u8 { solutionCount += 1; }
+        }
+        if guessCount < solutionCount {
+            totalMatches += guessCount;
+        } else {
+            totalMatches += solutionCount;
+        }
+    }
+
+    let provenCows: u8 = totalMatches - provenBulls; // correct color, wrong position
 
     assert(cows == provenCows);
     assert(bulls == provenBulls);
 
-    // you cannot validate the solution to this circuit, unless you know the salt
+    //you cannot validate the solution to this circuit, unless you know the salt
     let solutionHash: Field = compute_solution_hash(salt, solutionA, solutionB, solutionC, solutionD);
     
     assert(solutionHash == publicSolutionHash);
+
 }
-    
