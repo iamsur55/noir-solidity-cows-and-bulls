@@ -32,7 +32,7 @@ This project uses Nargo. It is assumed that the user has access to the `nargo CL
 
 ```bash
 curl -L https://raw.githubusercontent.com/noir-lang/noirup/refs/heads/main/install | bash
-noirup -v 1.0.0-beta.18
+noirup -v 1.0.0-beta.19
 ```
 
 If `noirup` does not work, source your `.bashrc` / `.zshrc`
@@ -48,7 +48,7 @@ This project uses Barretenberg. It is assumed that the user has access to the `b
 
 ```bash
 curl -L https://raw.githubusercontent.com/AztecProtocol/aztec-packages/refs/heads/next/barretenberg/bbup/install | bash
-bbup -v 3.0.0-nightly.20260102
+bbup -v 4.0.0-nightly.20260120
 ```
 
 If `bbup` does not work, source your `.bashrc` / `.zshrc`
@@ -163,8 +163,8 @@ npm run tool:export-eth-inputs
 GitHub Actions runs the `check` job from `.github/workflows/test.yml` with the following tool versions:
 
 - Foundry `1.5.1-stable`
-- Nargo `1.0.0-beta.18`
-- Barretenberg `3.0.0-nightly.20260102`
+- Nargo `1.0.0-beta.19`
+- Barretenberg `4.0.0-nightly.20260120`
 
 The CI chain is executed through the same npm scripts used locally:
 
