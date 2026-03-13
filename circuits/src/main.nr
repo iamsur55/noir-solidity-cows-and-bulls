@@ -67,7 +67,7 @@ fn main(
 
     //you cannot validate the solution to this circuit, unless you know the salt
     let solutionHash: Field = compute_solution_hash(salt, solutionA, solutionB, solutionC, solutionD);
-
+    
     assert(solutionHash == publicSolutionHash);
 
 }

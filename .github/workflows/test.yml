@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  FOUNDRY_VERSION: 1.6.0-nightly
+  FOUNDRY_VERSION: 1.5.1-stable
   NARGO_VERSION: 1.0.0-beta.18
   BB_VERSION: 3.0.0-nightly.20260102
 
@@ -27,7 +27,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
-          version: ${{ env.FOUNDRY_VERSION }}
+          version: $FOUNDRY_VERSION
 
       - name: Install Noir
         run: |
