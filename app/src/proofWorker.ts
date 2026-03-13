@@ -4,11 +4,12 @@ import initACVM from "@noir-lang/acvm_js";
 import acvm from "@noir-lang/acvm_js/web/acvm_js_bg.wasm?url";
 import noirc from "@noir-lang/noirc_abi/web/noirc_abi_wasm_bg.wasm?url";
 import initNoirC from "@noir-lang/noirc_abi";
+import circuit from './../public/cows_and_bulls.json';
+
 await Promise.all([
   initACVM(fetch(acvm)),
   initNoirC(fetch(noirc))
 ]);
-import circuit from './../public/cows_and_bulls.json';
 
 let noir: Noir;
 let backend: UltraHonkBackend;

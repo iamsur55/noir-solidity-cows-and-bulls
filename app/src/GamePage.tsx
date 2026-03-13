@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { parseAbi, isAddress, padHex, toHex, type Address } from "viem";
+import { parseAbi, isAddress, padHex, type Address } from "viem";
 import { useConnect, useWriteContract, useReadContract } from "wagmi";
 import { injected } from '@wagmi/connectors';
 import deployment from "../../broadcast/CowsAndBulls.s.sol/31337/run-latest.json";
@@ -43,6 +43,15 @@ export default function GamePage() {
   const [solutionD, setSolutionD] = useState("");
   const [salt, setSalt] = useState("");
 
+  // -------- Get Game State--------
+  const { data: gameState, refetch: refetchGameState, isLoading, error } = useReadContract({
+    address: CONTRACT_ADDRESS,
+    abi: ABI,
+    functionName: "games",
+    args: shouldFetch ? [maker as Address, breaker as Address] : undefined,
+    query: { enabled: shouldFetch },
+  }) as { data?: readonly [number, number, number, boolean, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`], refetch: () => void, isLoading: boolean, error: any };
+
   useEffect(() => {
     const worker = new Worker(
       new URL("./proofWorker.ts", import.meta.url),
@@ -51,8 +60,8 @@ export default function GamePage() {
 
     workerRef.current = worker;
 
-    worker.onmessage = (event) => {
-      const { status } = event.data;
+    worker.onmessage = async (event) => {
+      const { status, proof, publicInputs, error } = event.data;
 
       if (status === "worker_loaded") {
         worker.postMessage({ type: "init" });
@@ -60,6 +69,48 @@ export default function GamePage() {
 
       if (status === "worker_ready") {
         workerReadyRef.current = true;
+      }
+
+      if (status === "proof_done") {
+        try {
+          const cowsHex = typeof publicInputs[4] === 'bigint'
+            ? padHex(`0x${publicInputs[4].toString(16)}`, { size: 32 })
+            : padHex(`0x${BigInt(publicInputs[4]).toString(16)}`, { size: 32 });
+
+          const bullsHex = typeof publicInputs[5] === 'bigint'
+            ? padHex(`0x${publicInputs[5].toString(16)}`, { size: 32 })
+            : padHex(`0x${BigInt(publicInputs[5]).toString(16)}`, { size: 32 });
+
+          const solutionHashHex = typeof publicInputs[6] === 'bigint'
+            ? padHex(`0x${publicInputs[6].toString(16)}`, { size: 32 })
+            : padHex(`0x${BigInt(publicInputs[6]).toString(16)}`, { size: 32 });
+
+          const proofHex = `0x${Array.from(proof).map((b: number) => b.toString(16).padStart(2, '0')).join('')}`;
+
+          await mutateAsync({
+            address: CONTRACT_ADDRESS,
+            abi: ABI,
+            functionName: "giveFeedback",
+            args: [
+              breaker as Address,
+              proofHex as `0x${string}`,
+              cowsHex as `0x${string}`,
+              bullsHex as `0x${string}`,
+              solutionHashHex as `0x${string}`
+            ],
+          });
+
+          await refetchGameState();
+          setLoading(false);
+        } catch (err: any) {
+          console.error("Contract call error:", err.message || err.reason || err.toString());
+          setLoading(false);
+        }
+      }
+
+      if (status === "error") {
+        console.error("Proof generation error:", error);
+        setLoading(false);
       }
     };
 
@@ -80,9 +131,9 @@ export default function GamePage() {
   // -------- Create Game --------
   const createGame = async () => {
     if (!isAddress(breaker)) {
-        alert("Invalid address");
-    return;
-}
+      alert("Invalid address");
+      return;
+    }
     await mutateAsync({
       address: CONTRACT_ADDRESS,
       abi: ABI,
@@ -108,9 +159,8 @@ export default function GamePage() {
     });
   };
 
-  const giveFeedback = async () => {
+  const giveFeedback = () => {
     setLoading(true);
-
     workerRef.current?.postMessage({
       type: "prove",
       input: {
@@ -128,60 +178,7 @@ export default function GamePage() {
         salt: Number(salt),
       }
     });
-
-    workerRef.current!.onmessage = async (event) => {
-      const { status, proof, publicInputs, error } = event.data;
-
-      if (status === "proof_done") {
-        try {
-          const cowsHex = typeof publicInputs[4] === 'bigint'
-            ? padHex(`0x${publicInputs[4].toString(16)}`, { size: 32 })
-            : padHex(`0x${BigInt(publicInputs[4]).toString(16)}`, { size: 32 });
-
-          const bullsHex = typeof publicInputs[5] === 'bigint'
-            ? padHex(`0x${publicInputs[5].toString(16)}`, { size: 32 })
-            : padHex(`0x${BigInt(publicInputs[5]).toString(16)}`, { size: 32 });
-
-          const solutionHashHex = typeof publicInputs[6] === 'bigint'
-            ? padHex(`0x${publicInputs[6].toString(16)}`, { size: 32 })
-            : padHex(`0x${BigInt(publicInputs[6]).toString(16)}`, { size: 32 });
-
-          const proofHex = `0x${Array.from(proof).map(b => b.toString(16).padStart(2, '0')).join('')}`;
-
-          await mutateAsync({
-            address: CONTRACT_ADDRESS,
-            abi: ABI,
-            functionName: "giveFeedback",
-            args: [
-              breaker as Address,
-              proofHex as `0x${string}`,
-              cowsHex as `0x${string}`,
-              bullsHex as `0x${string}`,
-              solutionHashHex as `0x${string}`
-            ],
-          });
-
-          await refetchGameState();
-          setLoading(false);
-        } catch (err: any) {
-          console.error("Contract call error:", err.message || err.reason || err.toString());
-          setLoading(false);
-        }
-      } else if (status === "error") {
-        console.error("Proof generation error:", error);
-        setLoading(false);
-      }
-    };
   };
-
-  // -------- Get Game State--------
-  const { data: gameState, refetch: refetchGameState, isLoading, error } = useReadContract({
-    address: CONTRACT_ADDRESS,
-    abi: ABI,
-    functionName: "games",
-    args: shouldFetch ? [maker as Address, breaker as Address] : undefined,
-    query: { enabled: shouldFetch },
-  }) as { data?: readonly [number, number, number, boolean, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`], refetch: () => void, isLoading: boolean, error: any };
 
   return (
     <div>
