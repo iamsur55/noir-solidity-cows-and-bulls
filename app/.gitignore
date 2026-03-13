@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
+public/cows_and_bulls.json
 
 # Editor directories and files
 .vscode/*
