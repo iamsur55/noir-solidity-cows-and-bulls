@@ -12,10 +12,22 @@ contract CowsAndBullsTest is Test {
     address constant MAKER = address(0);
     address BREAKER = address(1);
 
+    struct ProofInputs {
+        bytes proof;
+        bytes32 guessA;
+        bytes32 guessB;
+        bytes32 guessC;
+        bytes32 guessD;
+        bytes32 cows;
+        bytes32 bulls;
+        bytes32 publicSolutionHash;
+    }
+
     function setUp() public {
         verifier = new HonkVerifier();
         cowsAndBulls = new CowsAndBulls(address(verifier));
     }
+
     function test_createNewGame() public {
         vm.prank(MAKER);
         cowsAndBulls.createNewGame(BREAKER);
@@ -48,7 +60,7 @@ contract CowsAndBullsTest is Test {
 
         vm.prank(MAKER);
         (bytes32 cows, bytes32 bulls) = giveFeedback();
-        
+
         (uint8 round, uint8 cows_, uint8 bulls_, bool breakerTurn, bytes32 guessA_, bytes32 guessB_, bytes32 guessC_, bytes32 guessD_) = cowsAndBulls.games(MAKER, BREAKER);
 
         vm.assertTrue(bytes32(uint256(bulls_)) == bulls);
@@ -56,7 +68,7 @@ contract CowsAndBullsTest is Test {
     }
 
     function test_hasWinner() public {
- 
+
     }
 
     function test_verify() public {
@@ -64,25 +76,34 @@ contract CowsAndBullsTest is Test {
     }
 
     function makeGuess() public returns(bytes32, bytes32, bytes32, bytes32) {
-        bytes32 guessA = vm.parseJsonBytes32(vm.readFile("test/inputs.json"), ".guessA");
-        bytes32 guessB = vm.parseJsonBytes32(vm.readFile("test/inputs.json"), ".guessB");
-        bytes32 guessC = vm.parseJsonBytes32(vm.readFile("test/inputs.json"), ".guessC");
-        bytes32 guessD = vm.parseJsonBytes32(vm.readFile("test/inputs.json"), ".guessD");
-
-        cowsAndBulls.makeGuess(MAKER, guessA, guessB, guessC, guessD);
-
-        return (guessA, guessB, guessC, guessD);
+        ProofInputs memory inputs = loadProofInputs();
+        cowsAndBulls.makeGuess(MAKER, inputs.guessA, inputs.guessB, inputs.guessC, inputs.guessD);
+        return (inputs.guessA, inputs.guessB, inputs.guessC, inputs.guessD);
     }
 
     function giveFeedback() public returns(bytes32, bytes32) {
+        ProofInputs memory inputs = loadProofInputs();
+        cowsAndBulls.giveFeedback(BREAKER, inputs.proof, inputs.cows, inputs.bulls, inputs.publicSolutionHash);
+        return (inputs.cows, inputs.bulls);
+    }
 
-        bytes memory proof = vm.parseJsonBytes(vm.readFile("test/inputs.json"), ".proof");
-        bytes32 cows = vm.parseJsonBytes32(vm.readFile("test/inputs.json"), ".cows");
-        bytes32 bulls = vm.parseJsonBytes32(vm.readFile("test/inputs.json"), ".bulls");
-        bytes32 publicSolutionHash = vm.parseJsonBytes32(vm.readFile("test/inputs.json"), ".publicSolutionHash");
-        
-        cowsAndBulls.giveFeedback(BREAKER, proof, cows, bulls, publicSolutionHash);
+    function loadProofInputs() internal returns (ProofInputs memory) {
+        bytes memory publicInputs = vm.readFileBinary("circuits/target/public_inputs");
+        return ProofInputs({
+            proof: vm.readFileBinary("circuits/target/proof"),
+            guessA: readBytes32(publicInputs, 0),
+            guessB: readBytes32(publicInputs, 32),
+            guessC: readBytes32(publicInputs, 64),
+            guessD: readBytes32(publicInputs, 96),
+            cows: readBytes32(publicInputs, 128),
+            bulls: readBytes32(publicInputs, 160),
+            publicSolutionHash: readBytes32(publicInputs, 192)
+        });
+    }
 
-        return(cows, bulls);
+    function readBytes32(bytes memory data, uint256 offset) internal pure returns (bytes32 result) {
+        assembly {
+            result := mload(add(add(data, 32), offset))
+        }
     }
 }
